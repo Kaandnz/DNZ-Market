@@ -35,11 +35,12 @@ Eski adres `dnz-bakkal.web.app` yeni adrese yönlendirir (`hosting-redirect/`).
 ### Otomatik yayın (GitHub Actions)
 
 `main`'e her push'ta `.github/workflows/deploy.yml` çalışır: tip kontrolü → birim testleri → güvenlik kuralı
-testleri → derleme → Firebase'e yayın (site + Firestore kuralları + indeksler). Bir test bile kırılırsa yayın yapılmaz.
+testleri → derleme → Firebase'e **site** yayını. Bir test bile kırılırsa yayın yapılmaz.
+Firestore güvenlik kuralları ve indeksler otomatik yayınlanmaz; değişince elle: `npm run deploy:rules`
+(kural dosyası değişirse Actions'ta uyarı çıkar).
 
 Bir kerelik kurulum (yapıldı): `npx firebase init hosting:github` servis hesabını (`github-action-1452407939`) oluşturup
-GitHub'a `FIREBASE_SERVICE_ACCOUNT_DNZ_BAKKAL` secret'ı olarak ekledi. Kuralları da yayınlayabilmesi için bu hesaba
-Google Cloud IAM'den **Firebase Admin** ve **Service Usage Consumer** rolleri verildi.
+GitHub'a `FIREBASE_SERVICE_ACCOUNT_DNZ_BAKKAL` secret'ı olarak ekledi. Bu hesap sadece siteyi yayınlayabilir.
 
 Elle kurmak gerekirse:
 

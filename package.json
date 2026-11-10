@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:rules": "firebase emulators:exec --only firestore --project demo-dnz \"vitest run --config vitest.rules.config.ts\"",
     "emulators": "firebase emulators:start --project demo-dnz",
-    "deploy": "npm run build && firebase deploy"
+    "deploy": "npm run build && firebase deploy",
+    "deploy:rules": "firebase deploy --only firestore:rules,firestore:indexes"
   },
   "dependencies": {
     "barcode-detector": "^3.2.3",
