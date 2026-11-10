@@ -8,6 +8,7 @@ import { beepSaved } from "../../lib/feedback";
 import { toast } from "../../lib/events";
 import { ChangeRow } from "../history/ChangeRow";
 import { SuggestInput } from "../../ui/SuggestInput";
+import { useHideCost } from "../../lib/prefs";
 import type { PriceChange, Product } from "../../data/types";
 
 interface Props {
@@ -31,6 +32,7 @@ export function ProductEditSheet({ product, storeId, uid, canEdit, categories = 
   const [active, setActive] = useState("sale");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [history, setHistory] = useState<PriceChange[]>([]);
+  const hideCost = useHideCost();
 
   useEffect(() => {
     setName(product?.name ?? "");
@@ -120,13 +122,13 @@ export function ProductEditSheet({ product, storeId, uid, canEdit, categories = 
             fields={[
               { key: "sale", label: "Satış", value: sale, placeholder: formatPlain(product.salePrice) },
               { key: "cost", label: "Alış", value: cost, placeholder: product.costPrice ? formatPlain(product.costPrice) : "—" },
-            ]}
+            ].filter((f) => !(hideCost && f.key === "cost"))}
             active={active}
             onActive={setActive}
             onChange={(k, v) => (k === "sale" ? setSale(v) : setCost(v))}
             onEnter={save}
           />
-          <MarginLine sale={saleK} cost={costK ?? product.costPrice} />
+          {!hideCost && <MarginLine sale={saleK} cost={costK ?? product.costPrice} />}
 
           <button
             onClick={save}

@@ -8,12 +8,14 @@ import type { Product, StoreSettings } from "../../data/types";
 interface Props {
   product: Product | null;
   settings: StoreSettings;
+  /** Alış / kâr bu telefonda gizli */
+  hideCost?: boolean;
   onClose: () => void;
   onSave: (p: { salePrice: number; costPrice?: number }) => void;
 }
 
 /** Fiyat Değiştir: okut → yeni fiyatı yaz → Kaydet. İstenirse alış fiyatı da girilir. */
-export function EditPriceSheet({ product, settings, onClose, onSave }: Props) {
+export function EditPriceSheet({ product, settings, hideCost = false, onClose, onSave }: Props) {
   const [sale, setSale] = useState("");
   const [cost, setCost] = useState("");
   const [active, setActive] = useState("sale");
@@ -67,16 +69,16 @@ export function EditPriceSheet({ product, settings, onClose, onSave }: Props) {
               placeholder: product.costPrice ? formatPlain(product.costPrice) : "—",
               note: product.costPrice ? undefined : "isteğe bağlı",
             },
-          ]}
+          ].filter((f) => !(hideCost && f.key === "cost"))}
           active={active}
           onActive={setActive}
           onChange={(k, v) => (k === "sale" ? setSale(v) : setCost(v))}
           onEnter={save}
         />
 
-        <MarginLine sale={finalSale} cost={finalCost} />
+        {!hideCost && <MarginLine sale={finalSale} cost={finalCost} />}
 
-        {suggestion !== null && suggestion !== finalSale && (
+        {!hideCost && suggestion !== null && suggestion !== finalSale && (
           <PriceChip
             label={`Önerilen (${formatPct(settings.defaultMarginPct)} kâr)`}
             price={suggestion}

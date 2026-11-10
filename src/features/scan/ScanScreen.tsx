@@ -7,7 +7,7 @@ import { ReceiveSheet, type ReceiveResult } from "./ReceiveSheet";
 import { CountSheet } from "../stock/CountSheet";
 import { useActiveStore } from "../store/StoreProvider";
 import { useUser } from "../auth/AuthProvider";
-import { savePrice, watchProduct, type ProductState } from "../../data/products";
+import { completeSale, savePrice, watchProduct, type ProductState } from "../../data/products";
 import type { Product } from "../../data/types";
 import { formatPct, formatTL, marginPct } from "../../lib/money";
 import { normalizeBarcode } from "../../lib/barcode";
@@ -16,13 +16,19 @@ import { toast } from "../../lib/events";
 import { timeAgo } from "../../lib/useOnline";
 import { useWakeLock } from "../../lib/useWakeLock";
 import { isIOS, isStandalone } from "../../lib/platform";
+import { useHideCost } from "../../lib/prefs";
+import { EMPTY_CART, addToCart, setQty, type Cart } from "../../lib/cart";
+import { SalePanel } from "./SalePanel";
 
-type Mode = "view" | "change" | "receive";
+type Mode = "view" | "change" | "receive" | "sale";
 const MODES: [Mode, string, string][] = [
   ["view", "Fiyat Gör", "bg-white text-stone-900"],
-  ["change", "Fiyat Değiştir", "bg-amber-500 text-white"],
+  ["change", "Değiştir", "bg-amber-500 text-white"],
   ["receive", "Mal Kabul", "bg-sky-700 text-white"],
+  ["sale", "Satış", "bg-emerald-700 text-white"],
 ];
+/** Fiyat değiştirme yetkisi olmayan çalışan sadece bakar ve satış yapar. */
+const STAFF_MODES: Mode[] = ["view", "sale"];
 const LOADING: ProductState = { status: "loading" };
 const MODE_KEY = "dnz.mode";
 const IOS_HINT_KEY = "dnz.iosHintDone";
@@ -48,7 +54,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
 
   const [mode, setModeState] = useState<Mode>(() => {
     const m = storage.get(MODE_KEY);
-    return m === "change" || m === "receive" ? m : "view";
+    return m === "change" || m === "receive" || m === "sale" ? m : "view";
   });
   const [barcode, setBarcode] = useState<string | null>(null);
   // Durum, ait olduğu barkodla birlikte tutulur: yeni okutmada eski ürünün durumu kullanılmasın.
@@ -60,8 +66,29 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
   const [manual, setManual] = useState("");
   const [iosHint, setIosHint] = useState(() => isIOS() && !isStandalone() && !storage.get(IOS_HINT_KEY));
   const pendingOpen = useRef(false);
+  const hideCost = useHideCost();
 
-  const effectiveMode: Mode = canEdit ? mode : "view";
+  // Satış sepeti: uygulama kapanıp açılsa da kaybolmasın diye telefonda saklanır.
+  const cartKey = `dnz.cart.${store.id}`;
+  const [cart, setCartState] = useState<Cart>(() => {
+    try {
+      return JSON.parse(storage.get(cartKey) || "null") ?? EMPTY_CART;
+    } catch {
+      return EMPTY_CART;
+    }
+  });
+  const setCart = useCallback(
+    (update: (c: Cart) => Cart) =>
+      setCartState((c) => {
+        const next = update(c);
+        storage.set(cartKey, JSON.stringify(next));
+        return next;
+      }),
+    [cartKey],
+  );
+
+  const effectiveMode: Mode = canEdit ? mode : STAFF_MODES.includes(mode) ? mode : "view";
+  const visibleModes = canEdit ? MODES : MODES.filter(([m]) => STAFF_MODES.includes(m));
   const paused = blocked || sheet !== null;
 
   useWakeLock(!blocked);
@@ -83,14 +110,17 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
     if (state.status === "loading") return;
     pendingOpen.current = false;
     if (state.status === "found") {
+      const p = state.product;
       if (countMode) setSheet("count");
+      else if (effectiveMode === "sale")
+        setCart((c) => addToCart(c, { barcode: p.barcode, name: p.name, price: p.salePrice, tracked: typeof p.stock === "number" }));
       else if (effectiveMode === "change") setSheet("edit");
       else if (effectiveMode === "receive") setSheet("receive");
     } else {
       beepUnknown();
       setSheet("new");
     }
-  }, [state, barcode, effectiveMode, scanSeq, countMode]);
+  }, [state, barcode, effectiveMode, scanSeq, countMode, setCart]);
 
   // Son okutulanlar
   useEffect(() => {
@@ -179,6 +209,18 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
     beepSaved();
     toast(p.qty ? `Ürün eklendi · ${p.qty} adet` : "Ürün eklendi.");
     setSheet(null);
+    // Satış modunda yeni eklenen ürün sepete de girsin.
+    if (effectiveMode === "sale" && !countMode) {
+      setCart((c) => addToCart(c, { barcode, name: p.name, price: p.salePrice, tracked: !!p.qty }));
+    }
+  }
+
+  function finishSale() {
+    const total = cart.items.reduce((s, i) => s + i.price * i.qty, 0);
+    const dropped = canEdit ? completeSale(store.id, user.uid, cart.items) : 0;
+    beepSaved();
+    toast(`Satış: ${formatTL(total)}${dropped ? ` · ${dropped} ürün stoktan düştü` : ""}`);
+    setCart(() => EMPTY_CART);
   }
 
   return (
@@ -213,13 +255,16 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
         </div>
       )}
 
-      {canEdit && !countMode && (
-        <div className="grid grid-cols-3 gap-1 rounded-2xl bg-stone-200 p-1">
-          {MODES.map(([m, label, on]) => (
+      {!countMode && (
+        <div
+          className="grid gap-1 rounded-2xl bg-stone-200 p-1"
+          style={{ gridTemplateColumns: `repeat(${visibleModes.length}, minmax(0, 1fr))` }}
+        >
+          {visibleModes.map(([m, label, on]) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`h-12 rounded-xl text-[15px] leading-tight font-semibold transition ${mode === m ? `${on} shadow` : "text-stone-600"}`}
+              className={`h-12 rounded-xl px-1 text-[15px] leading-tight font-semibold transition ${effectiveMode === m ? `${on} shadow` : "text-stone-600"}`}
             >
               {label}
             </button>
@@ -229,14 +274,25 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
 
       <Scanner paused={paused} hidden={blocked} onDetected={onDetected} />
 
-      <ResultCard
-        barcode={barcode}
-        state={state}
-        canEdit={canEdit}
-        mode={effectiveMode}
-        onEdit={() => setSheet(effectiveMode === "receive" ? "receive" : "edit")}
-        onAdd={() => setSheet("new")}
-      />
+      {effectiveMode === "sale" && !countMode ? (
+        <SalePanel
+          cart={cart}
+          canEdit={canEdit}
+          onQty={(code, q) => setCart((c) => setQty(c, code, q))}
+          onClear={() => setCart(() => EMPTY_CART)}
+          onFinish={finishSale}
+        />
+      ) : (
+        <ResultCard
+          barcode={barcode}
+          state={state}
+          canEdit={canEdit}
+          hideCost={hideCost}
+          mode={effectiveMode}
+          onEdit={() => setSheet(effectiveMode === "receive" ? "receive" : "edit")}
+          onAdd={() => setSheet("new")}
+        />
+      )}
 
       <form onSubmit={submitManual} className="flex gap-2">
         <input
@@ -251,7 +307,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
         </button>
       </form>
 
-      {recent.length > 1 && (
+      {recent.length > 1 && effectiveMode !== "sale" && (
         <div className="rounded-2xl bg-white p-2 shadow-sm">
           <div className="px-2 pt-1 pb-1 text-xs font-medium tracking-wide text-stone-400 uppercase">Son okutulanlar</div>
           {recent.slice(1).map((r) => (
@@ -273,6 +329,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
       <EditPriceSheet
         product={sheet === "edit" ? product : null}
         settings={store.settings}
+        hideCost={hideCost}
         onClose={() => setSheet(null)}
         onSave={saveEdit}
       />
@@ -287,6 +344,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
         barcode={sheet === "new" ? barcode : null}
         canEdit={canEdit}
         settings={store.settings}
+        hideCost={hideCost}
         withQty={countMode || effectiveMode === "receive"}
         offline={state.status === "unknown-offline"}
         onClose={() => setSheet(null)}
@@ -300,6 +358,7 @@ function ResultCard({
   barcode,
   state,
   canEdit,
+  hideCost,
   mode,
   onEdit,
   onAdd,
@@ -307,6 +366,7 @@ function ResultCard({
   barcode: string | null;
   state: ProductState;
   canEdit: boolean;
+  hideCost: boolean;
   mode: Mode;
   onEdit: () => void;
   onAdd: () => void;
@@ -364,10 +424,10 @@ function ResultCard({
           </button>
         )}
       </div>
-      {canEdit && (p.costPrice || typeof p.stock === "number") && (
+      {canEdit && ((p.costPrice && !hideCost) || typeof p.stock === "number") && (
         <div className="mt-1 flex flex-wrap gap-x-3 text-sm text-stone-500">
-          {p.costPrice ? <span>Alış {formatTL(p.costPrice)}</span> : null}
-          {p.costPrice ? (
+          {p.costPrice && !hideCost ? <span>Alış {formatTL(p.costPrice)}</span> : null}
+          {p.costPrice && !hideCost ? (
             <span className={marginPct(p.salePrice, p.costPrice)! < 0 ? "font-semibold text-red-600" : ""}>
               Kâr {formatPct(marginPct(p.salePrice, p.costPrice)!)}
             </span>

@@ -23,6 +23,8 @@ interface Props {
   /** Bu kişi ürün ekleyebilir mi? Değilse sadece internette arama gösterilir. */
   canEdit: boolean;
   settings: StoreSettings;
+  /** Alış / kâr bu telefonda gizli (Mal Kabul'de yine gösterilir) */
+  hideCost?: boolean;
   /** Mal Kabul modunda gelen adet de sorulur. */
   withQty?: boolean;
   offline?: boolean;
@@ -31,7 +33,8 @@ interface Props {
 }
 
 /** Kayıtlı olmayan barkod: adı bul, internette fiyat ara, fiyat yazıp kaydet. */
-export function NewProductSheet({ barcode, canEdit, settings, withQty, offline, onClose, onSave }: Props) {
+export function NewProductSheet({ barcode, canEdit, settings, hideCost = false, withQty, offline, onClose, onSave }: Props) {
+  const showCost = withQty || !hideCost;
   const [name, setName] = useState("");
   const [hit, setHit] = useState<NameHit | null>(null);
   const [looking, setLooking] = useState(false);
@@ -91,7 +94,7 @@ export function NewProductSheet({ barcode, canEdit, settings, withQty, offline, 
     : [
         { key: "cost", label: "Alış", value: cost, placeholder: "—", note: "isteğe bağlı" },
         { key: "sale", label: "Satış", value, placeholder: "0" },
-      ];
+      ].filter((f) => showCost || f.key !== "cost");
 
   function save() {
     if (!canSave || kurus === null) return;
@@ -194,8 +197,8 @@ export function NewProductSheet({ barcode, canEdit, settings, withQty, offline, 
                   }}
                 />
               )}
-              <MarginLine sale={kurus} cost={costK} />
-              {suggestion !== null && suggestion !== kurus && (
+              {showCost && <MarginLine sale={kurus} cost={costK} />}
+              {showCost && suggestion !== null && suggestion !== kurus && (
                 <PriceChip
                   label={`Önerilen satış (${formatPct(usedMargin)} kâr)`}
                   price={suggestion}

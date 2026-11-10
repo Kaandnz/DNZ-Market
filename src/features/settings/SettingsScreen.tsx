@@ -6,12 +6,14 @@ import { setSoundEnabled, soundEnabled } from "../../lib/feedback";
 import { isIOS, isStandalone } from "../../lib/platform";
 import { CameraPicker } from "./CameraPicker";
 import { StoreSettingsSection } from "./StoreSettingsSection";
+import { setHideCost, useHideCost } from "../../lib/prefs";
 import { BackupSection } from "./BackupSection";
 
 export function SettingsScreen() {
   const user = useUser();
   const [sound, setSound] = useState(soundEnabled);
   const [confirming, setConfirming] = useState(false);
+  const hideCost = useHideCost();
 
   return (
     <div className="flex flex-col gap-4">
@@ -30,6 +32,18 @@ export function SettingsScreen() {
               setSound(e.target.checked);
               setSoundEnabled(e.target.checked);
             }}
+          />
+        </label>
+        <label className="flex items-center justify-between gap-3 py-2">
+          <span>
+            Alışı gizle
+            <span className="block text-xs text-stone-500">Alış fiyatı ve kâr bu telefonda görünmez (Mal Kabul hariç). Müşteri ekranı görse de sorun olmaz.</span>
+          </span>
+          <input
+            type="checkbox"
+            className="size-6 shrink-0 accent-emerald-700"
+            checked={hideCost}
+            onChange={(e) => setHideCost(e.target.checked)}
           />
         </label>
         <CameraPicker />

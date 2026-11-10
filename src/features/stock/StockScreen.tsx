@@ -7,6 +7,7 @@ import { CountSheet } from "./CountSheet";
 import { DEFAULT_MIN_STOCK, isLowStock } from "../../data/products";
 import { formatTL } from "../../lib/money";
 import type { Product } from "../../data/types";
+import { useHideCost } from "../../lib/prefs";
 
 type Tab = "low" | "all" | "none";
 
@@ -21,6 +22,7 @@ export function StockScreen({ onStartCount }: { onStartCount: () => void }) {
   const [tab, setTab] = useState<Tab>("low");
   const [search, setSearch] = useState("");
   const [counting, setCounting] = useState<Product | null>(null);
+  const hideCost = useHideCost();
 
   const tracked = useMemo(() => products.filter((p) => typeof p.stock === "number"), [products]);
   const low = useMemo(
@@ -45,11 +47,18 @@ export function StockScreen({ onStartCount }: { onStartCount: () => void }) {
           <div className="text-sm text-stone-500">Azalan</div>
           <div className={`text-3xl font-bold ${low.length ? "text-red-600" : "text-emerald-700"}`}>{low.length}</div>
         </div>
-        <div className="rounded-3xl bg-white p-4 shadow-sm">
-          <div className="text-sm text-stone-500">Stok değeri (alış)</div>
-          <div className="truncate text-2xl font-bold tabular-nums">{formatTL(value)}</div>
-          {missingCost > 0 && <div className="text-[11px] text-stone-400">{missingCost} ürünün alışı yok</div>}
-        </div>
+        {hideCost ? (
+          <div className="rounded-3xl bg-white p-4 shadow-sm">
+            <div className="text-sm text-stone-500">Stoklu ürün</div>
+            <div className="text-3xl font-bold">{tracked.length}</div>
+          </div>
+        ) : (
+          <div className="rounded-3xl bg-white p-4 shadow-sm">
+            <div className="text-sm text-stone-500">Stok değeri (alış)</div>
+            <div className="truncate text-2xl font-bold tabular-nums">{formatTL(value)}</div>
+            {missingCost > 0 && <div className="text-[11px] text-stone-400">{missingCost} ürünün alışı yok</div>}
+          </div>
+        )}
       </div>
 
       <button

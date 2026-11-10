@@ -223,6 +223,36 @@ export function setStockCount(
   commitInBackground(batch);
 }
 
+/**
+ * Satışı bitir: stoğu tutulan ürünler satılan adet kadar stoktan düşer, her biri için
+ * "sale" stok hareketi yazılır. Stoğu tutulmayan ürünlere dokunulmaz.
+ * Döner: stoktan düşülen ürün sayısı.
+ */
+export function completeSale(storeId: string, uid: string, items: { barcode: string; name: string; qty: number; tracked: boolean }[]): number {
+  const tracked = items.filter((i) => i.tracked && i.qty > 0);
+  // Firestore yazımı 500 işlemle sınırlı: ürün başına 2 yazım.
+  for (let i = 0; i < tracked.length; i += 200) {
+    const batch = writeBatch(db);
+    for (const it of tracked.slice(i, i + 200)) {
+      batch.set(
+        doc(db, "stores", storeId, "products", it.barcode),
+        { stock: increment(-it.qty), updatedAt: serverTimestamp(), updatedBy: uid },
+        { merge: true },
+      );
+      batch.set(doc(collection(db, "stores", storeId, "stockMoves")), {
+        barcode: it.barcode,
+        name: it.name,
+        type: "sale",
+        qty: -it.qty,
+        uid,
+        at: serverTimestamp(),
+      });
+    }
+    commitInBackground(batch);
+  }
+  return tracked.length;
+}
+
 /** Azalan sayılır: stok tutuluyorsa ve uyarı sınırına (yoksa 2) indiyse. */
 export const DEFAULT_MIN_STOCK = 2;
 export function isLowStock(p: Product): boolean {

@@ -9,6 +9,7 @@ import { internalCode, savePrice } from "../../data/products";
 import { beepSaved } from "../../lib/feedback";
 import { toast } from "../../lib/events";
 import type { Product, StoreSettings } from "../../data/types";
+import { useHideCost } from "../../lib/prefs";
 
 interface Props {
   open: boolean;
@@ -31,6 +32,7 @@ export function AddProductSheet({ open, storeId, uid, settings, products, catego
   const [sale, setSale] = useState("");
   const [cost, setCost] = useState("");
   const [active, setActive] = useState("sale");
+  const hideCost = useHideCost();
 
   useEffect(() => {
     if (!open) return;
@@ -105,14 +107,14 @@ export function AddProductSheet({ open, storeId, uid, settings, products, catego
           fields={[
             { key: "sale", label: "Satış", value: sale, placeholder: "0" },
             { key: "cost", label: "Alış", value: cost, placeholder: "—", note: "isteğe bağlı" },
-          ]}
+          ].filter((f) => !(hideCost && f.key === "cost"))}
           active={active}
           onActive={setActive}
           onChange={(k, v) => (k === "sale" ? setSale(v) : setCost(v))}
           onEnter={save}
         />
-        <MarginLine sale={saleK} cost={costK} />
-        {suggestion !== null && suggestion !== saleK && (
+        {!hideCost && <MarginLine sale={saleK} cost={costK} />}
+        {!hideCost && suggestion !== null && suggestion !== saleK && (
           <PriceChip
             label={`Önerilen satış (${formatPct(settings.defaultMarginPct)} kâr)`}
             price={suggestion}

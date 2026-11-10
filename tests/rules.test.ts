@@ -242,6 +242,17 @@ describe("toplu zam ve sayım", () => {
     await assertSucceeds(b.commit());
   });
 
+  it("satış: stok satılan adet kadar düşer, hareket kaydı tutulur", async () => {
+    const d = db("baba");
+    await setDoc(doc(d, "stores", STORE, "products", "1"), { ...product("baba"), stock: 10 });
+    const b = writeBatch(d);
+    b.set(doc(d, "stores", STORE, "products", "1"), { stock: increment(-3), updatedAt: serverTimestamp(), updatedBy: "baba" }, { merge: true });
+    b.set(doc(collection(d, "stores", STORE, "stockMoves")), { barcode: "1", name: "Gofret", type: "sale", qty: -3, uid: "baba", at: serverTimestamp() });
+    await assertSucceeds(b.commit());
+    const after = await getDoc(doc(d, "stores", STORE, "products", "1"));
+    if (after.data()?.stock !== 7) throw new Error("stok 7 olmalıydı: " + after.data()?.stock);
+  });
+
   it("kategori ve marka kaydedilir, çok uzun kategori reddedilir", async () => {
     await assertSucceeds(setDoc(doc(db("baba"), "stores", STORE, "products", "1"), { ...product("baba"), category: "Atıştırmalık", brand: "Ülker" }));
     await assertFails(setDoc(doc(db("baba"), "stores", STORE, "products", "2"), { ...product("baba"), category: "x".repeat(101) }));

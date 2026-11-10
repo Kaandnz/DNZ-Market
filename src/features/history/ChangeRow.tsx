@@ -1,6 +1,7 @@
 import { formatTL } from "../../lib/money";
 import { timeAgo } from "../../lib/useOnline";
 import type { PriceChange, PriceSource } from "../../data/types";
+import { useHideCost } from "../../lib/prefs";
 
 export const SOURCE_LABEL: Record<PriceSource, { text: string; cls: string }> = {
   manual: { text: "Elle", cls: "bg-amber-100 text-amber-900" },
@@ -15,7 +16,8 @@ export function ChangeRow({ c, who, showName = true }: { c: PriceChange; who?: s
   const src = SOURCE_LABEL[c.source] ?? SOURCE_LABEL.manual;
   const up = c.oldSale !== null && c.newSale > c.oldSale;
   const down = c.oldSale !== null && c.newSale < c.oldSale;
-  const costChanged = c.newCost !== null && c.newCost !== c.oldCost;
+  const hideCost = useHideCost();
+  const costChanged = !hideCost && c.newCost !== null && c.newCost !== c.oldCost;
 
   return (
     <div className="flex items-start gap-3 py-3">
