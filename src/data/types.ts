@@ -15,6 +15,10 @@ export interface StoreSettings {
   /** Önerilen fiyatların yuvarlanma kuralı. */
   rounding: Rounding;
   soundOn: boolean;
+  /** Stok takibi açık mı? Kapalıyken adet / stok ekranları gizlenir, satışta stoktan düşülmez. */
+  stockEnabled: boolean;
+  /** Ürüne özel uyarı sınırı yoksa bu sayıya inince "azalan" sayılır. */
+  lowStockDefault: number;
 }
 
 export type PriceSource = "manual" | "receiving" | "bulk" | "new" | "import";

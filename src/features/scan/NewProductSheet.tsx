@@ -27,13 +27,15 @@ interface Props {
   hideCost?: boolean;
   /** Mal Kabul modunda gelen adet de sorulur. */
   withQty?: boolean;
+  /** Stok takibi kapalıysa Mal Kabul'de "Adet" sorulmaz. */
+  withStock?: boolean;
   offline?: boolean;
   onClose: () => void;
   onSave: (p: NewProductResult) => void;
 }
 
 /** Kayıtlı olmayan barkod: adı bul, internette fiyat ara, fiyat yazıp kaydet. */
-export function NewProductSheet({ barcode, canEdit, settings, hideCost = false, withQty, offline, onClose, onSave }: Props) {
+export function NewProductSheet({ barcode, canEdit, settings, hideCost = false, withQty, withStock = true, offline, onClose, onSave }: Props) {
   const showCost = withQty || !hideCost;
   const [name, setName] = useState("");
   const [hit, setHit] = useState<NameHit | null>(null);
@@ -79,7 +81,7 @@ export function NewProductSheet({ barcode, canEdit, settings, hideCost = false, 
 
   const fields: PadField[] = withQty
     ? [
-        { key: "qty", label: "Adet", value: qty, placeholder: "0", kind: "qty" },
+        ...(withStock ? [{ key: "qty", label: "Adet", value: qty, placeholder: "0", kind: "qty" as const }] : []),
         { key: "cost", label: "Alış", value: cost, placeholder: "—" },
         {
           key: "margin",

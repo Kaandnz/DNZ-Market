@@ -108,9 +108,11 @@ export function Shell() {
                 <MenuItem icon="🏷" onClick={() => go("labels")}>
                   Raf etiketleri
                 </MenuItem>
-                <MenuItem icon="📊" onClick={() => go("stock")}>
-                  Stok
-                </MenuItem>
+                {store.settings.stockEnabled && (
+                  <MenuItem icon="📊" onClick={() => go("stock")}>
+                    Stok
+                  </MenuItem>
+                )}
                 <MenuItem icon="💹" onClick={() => go("bulk")}>
                   Toplu zam
                 </MenuItem>

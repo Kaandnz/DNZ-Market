@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BottomSheet } from "../../ui/BottomSheet";
 import { FieldPad } from "../../ui/FieldPad";
 import { DEFAULT_MIN_STOCK, setStockCount } from "../../data/products";
+import { useStore } from "../store/StoreProvider";
 import { beepSaved } from "../../lib/feedback";
 import { toast } from "../../lib/events";
 import type { Product } from "../../data/types";
@@ -18,6 +19,7 @@ export function CountSheet({ product, storeId, uid, onClose }: Props) {
   const [count, setCount] = useState("");
   const [min, setMin] = useState("");
   const [active, setActive] = useState("count");
+  const minDefault = useStore().store?.settings.lowStockDefault ?? DEFAULT_MIN_STOCK;
 
   useEffect(() => {
     setCount("");
@@ -66,7 +68,7 @@ export function CountSheet({ product, storeId, uid, onClose }: Props) {
               key: "min",
               label: "Uyarı sınırı",
               value: min,
-              placeholder: String(product.minStock ?? DEFAULT_MIN_STOCK),
+              placeholder: String(product.minStock ?? minDefault),
               kind: "qty",
               note: "bu sayıya inince uyar",
             },

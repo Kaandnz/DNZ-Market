@@ -69,6 +69,48 @@ export function StoreSettingsSection() {
       <p className="mt-2 text-xs text-stone-500">
         Örnek: alış {formatTL(1000)} → önerilen satış <b>{formatTL(example)}</b>
       </p>
+
+      <div className="mt-5 border-t border-stone-100 pt-4">
+        <label className="flex items-center justify-between gap-3">
+          <span>
+            <span className="font-medium">Stok takibi</span>
+            <span className="block text-xs text-stone-500">
+              Kapalıyken Stok menüsü, Mal Kabul'deki "Adet" ve stok sayıları gizlenir; satışta stoktan düşülmez. Kayıtlı stoklar silinmez.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            className="size-6 shrink-0 accent-emerald-700"
+            checked={s.stockEnabled}
+            onChange={(e) => set({ stockEnabled: e.target.checked })}
+          />
+        </label>
+
+        {s.stockEnabled && (
+          <div className="mt-3">
+            <div className="mb-1 text-sm font-medium text-stone-600">Azalan uyarısı (varsayılan)</div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => set({ lowStockDefault: Math.max(0, s.lowStockDefault - 1) })}
+                className="grid size-11 place-items-center rounded-xl bg-stone-100 text-xl font-bold active:bg-stone-200"
+                aria-label="Azalt"
+              >
+                −
+              </button>
+              <div className="w-16 text-center text-2xl font-bold tabular-nums">{s.lowStockDefault}</div>
+              <button
+                onClick={() => set({ lowStockDefault: Math.min(9999, s.lowStockDefault + 1) })}
+                className="grid size-11 place-items-center rounded-xl bg-stone-100 text-xl font-bold active:bg-stone-200"
+                aria-label="Artır"
+              >
+                +
+              </button>
+              <span className="text-sm text-stone-500">adet ve altı "azalan"</span>
+            </div>
+            <p className="mt-1 text-xs text-stone-500">Ürüne özel sınır girilmediyse bu kullanılır (Stok → ürüne dokun → Uyarı sınırı).</p>
+          </div>
+        )}
+      </div>
     </section>
   );
 }

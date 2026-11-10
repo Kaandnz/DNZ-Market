@@ -253,10 +253,10 @@ export function completeSale(storeId: string, uid: string, items: { barcode: str
   return tracked.length;
 }
 
-/** Azalan sayılır: stok tutuluyorsa ve uyarı sınırına (yoksa 2) indiyse. */
+/** Azalan sayılır: stok tutuluyorsa ve uyarı sınırına (ürüne özel yoksa marketin varsayılanı) indiyse. */
 export const DEFAULT_MIN_STOCK = 2;
-export function isLowStock(p: Product): boolean {
-  return typeof p.stock === "number" && p.stock <= (p.minStock ?? DEFAULT_MIN_STOCK);
+export function isLowStock(p: Product, defaultMin: number = DEFAULT_MIN_STOCK): boolean {
+  return typeof p.stock === "number" && p.stock <= (p.minStock ?? defaultMin);
 }
 
 /** Barkodu olmayan ürün (dökme, ekmek vb.) için kısa iç kod. */

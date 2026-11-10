@@ -9,6 +9,7 @@ import { toast } from "../../lib/events";
 import { ChangeRow } from "../history/ChangeRow";
 import { SuggestInput } from "../../ui/SuggestInput";
 import { useHideCost } from "../../lib/prefs";
+import { useStore } from "../store/StoreProvider";
 import type { PriceChange, Product } from "../../data/types";
 
 interface Props {
@@ -33,6 +34,7 @@ export function ProductEditSheet({ product, storeId, uid, canEdit, categories = 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [history, setHistory] = useState<PriceChange[]>([]);
   const hideCost = useHideCost();
+  const stockOn = useStore().store?.settings.stockEnabled ?? true;
 
   useEffect(() => {
     setName(product?.name ?? "");
@@ -95,7 +97,7 @@ export function ProductEditSheet({ product, storeId, uid, canEdit, categories = 
           <div>{canEdit ? "Ürünü düzenle" : product.name}</div>
           <div className="text-sm font-normal text-stone-500">
             {product.barcode}
-            {canEdit && typeof product.stock === "number" && ` · stok ${product.stock}`}
+            {canEdit && stockOn && typeof product.stock === "number" && ` · stok ${product.stock}`}
           </div>
         </>
       }

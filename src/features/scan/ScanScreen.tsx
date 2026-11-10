@@ -19,13 +19,17 @@ import { isIOS, isStandalone } from "../../lib/platform";
 import { useHideCost } from "../../lib/prefs";
 import { EMPTY_CART, addToCart, setQty, type Cart } from "../../lib/cart";
 import { SalePanel } from "./SalePanel";
+import { SaleSearch } from "./SaleSearch";
+
+/** Barkodlar rakam / büyük harf; boşluk, küçük harf ya da Türkçe harf varsa ürün adıdır. */
+const isNameQuery = (t: string) => /[\sa-zçğıöşüÇĞİÖŞÜ]/.test(t);
 
 type Mode = "view" | "change" | "receive" | "sale";
 const MODES: [Mode, string, string][] = [
   ["view", "Fiyat Gör", "bg-white text-stone-900"],
   ["change", "Değiştir", "bg-amber-500 text-white"],
   ["receive", "Mal Kabul", "bg-sky-700 text-white"],
-  ["sale", "Satış", "bg-emerald-700 text-white"],
+  ["sale", "Satış", "bg-blue-600 text-white"],
 ];
 /** Fiyat değiştirme yetkisi olmayan çalışan sadece bakar ve satış yapar. */
 const STAFF_MODES: Mode[] = ["view", "sale"];
@@ -67,6 +71,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
   const [iosHint, setIosHint] = useState(() => isIOS() && !isStandalone() && !storage.get(IOS_HINT_KEY));
   const pendingOpen = useRef(false);
   const hideCost = useHideCost();
+  const stockOn = store.settings.stockEnabled;
 
   // Satış sepeti: uygulama kapanıp açılsa da kaybolmasın diye telefonda saklanır.
   const cartKey = `dnz.cart.${store.id}`;
@@ -113,7 +118,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
       const p = state.product;
       if (countMode) setSheet("count");
       else if (effectiveMode === "sale")
-        setCart((c) => addToCart(c, { barcode: p.barcode, name: p.name, price: p.salePrice, tracked: typeof p.stock === "number" }));
+        setCart((c) => addToCart(c, { barcode: p.barcode, name: p.name, price: p.salePrice, tracked: stockOn && typeof p.stock === "number" }));
       else if (effectiveMode === "change") setSheet("edit");
       else if (effectiveMode === "receive") setSheet("receive");
     } else {
@@ -142,12 +147,27 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
 
   useWedgeScanner(!paused, onDetected);
 
+  const saleSearching = effectiveMode === "sale" && !countMode && isNameQuery(manual.trim());
+
+  function addProductToSale(p: Product) {
+    beepScan();
+    setCart((c) => addToCart(c, { barcode: p.barcode, name: p.name, price: p.salePrice, tracked: stockOn && typeof p.stock === "number" }));
+    setManual("");
+    (document.activeElement as HTMLElement | null)?.blur();
+    toast(`Eklendi: ${p.name}`, "info");
+  }
+
   function submitManual(e: FormEvent) {
     e.preventDefault();
     const text = manual.trim();
+    // Satış modunda isim aranırsa sonuçlar kutunun altında listelenir; klavyeyi kapat yeter.
+    if (saleSearching) {
+      (document.activeElement as HTMLElement | null)?.blur();
+      return;
+    }
     // Barkodlar rakam / büyük harften oluşur. Boşluk, küçük harf ya da Türkçe harf varsa
     // bu bir ürün adıdır: Ürünler'de ara.
-    if (onSearchName && /[\sa-zçğıöşüÇĞİÖŞÜ]/.test(text)) {
+    if (onSearchName && isNameQuery(text)) {
       setManual("");
       (document.activeElement as HTMLElement | null)?.blur();
       onSearchName(text);
@@ -217,7 +237,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
 
   function finishSale() {
     const total = cart.items.reduce((s, i) => s + i.price * i.qty, 0);
-    const dropped = canEdit ? completeSale(store.id, user.uid, cart.items) : 0;
+    const dropped = canEdit && stockOn ? completeSale(store.id, user.uid, cart.items) : 0;
     beepSaved();
     toast(`Satış: ${formatTL(total)}${dropped ? ` · ${dropped} ürün stoktan düştü` : ""}`);
     setCart(() => EMPTY_CART);
@@ -277,7 +297,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
       {effectiveMode === "sale" && !countMode ? (
         <SalePanel
           cart={cart}
-          canEdit={canEdit}
+          canEdit={canEdit && stockOn}
           onQty={(code, q) => setCart((c) => setQty(c, code, q))}
           onClear={() => setCart(() => EMPTY_CART)}
           onFinish={finishSale}
@@ -288,6 +308,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
           state={state}
           canEdit={canEdit}
           hideCost={hideCost}
+          showStock={stockOn}
           mode={effectiveMode}
           onEdit={() => setSheet(effectiveMode === "receive" ? "receive" : "edit")}
           onAdd={() => setSheet("new")}
@@ -306,6 +327,8 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
           Bul
         </button>
       </form>
+
+      {saleSearching && <SaleSearch storeId={store.id} query={manual} onPick={addProductToSale} />}
 
       {recent.length > 1 && effectiveMode !== "sale" && (
         <div className="rounded-2xl bg-white p-2 shadow-sm">
@@ -337,6 +360,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
       <ReceiveSheet
         product={sheet === "receive" ? product : null}
         settings={store.settings}
+        withStock={stockOn}
         onClose={() => setSheet(null)}
         onSave={saveReceive}
       />
@@ -346,6 +370,7 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
         settings={store.settings}
         hideCost={hideCost}
         withQty={countMode || effectiveMode === "receive"}
+        withStock={stockOn}
         offline={state.status === "unknown-offline"}
         onClose={() => setSheet(null)}
         onSave={saveNew}
@@ -359,6 +384,7 @@ function ResultCard({
   state,
   canEdit,
   hideCost,
+  showStock,
   mode,
   onEdit,
   onAdd,
@@ -367,6 +393,7 @@ function ResultCard({
   state: ProductState;
   canEdit: boolean;
   hideCost: boolean;
+  showStock: boolean;
   mode: Mode;
   onEdit: () => void;
   onAdd: () => void;
@@ -424,7 +451,7 @@ function ResultCard({
           </button>
         )}
       </div>
-      {canEdit && ((p.costPrice && !hideCost) || typeof p.stock === "number") && (
+      {canEdit && ((p.costPrice && !hideCost) || (showStock && typeof p.stock === "number")) && (
         <div className="mt-1 flex flex-wrap gap-x-3 text-sm text-stone-500">
           {p.costPrice && !hideCost ? <span>Alış {formatTL(p.costPrice)}</span> : null}
           {p.costPrice && !hideCost ? (
@@ -432,7 +459,7 @@ function ResultCard({
               Kâr {formatPct(marginPct(p.salePrice, p.costPrice)!)}
             </span>
           ) : null}
-          {typeof p.stock === "number" && <span>Stok {p.stock}</span>}
+          {showStock && typeof p.stock === "number" && <span>Stok {p.stock}</span>}
         </div>
       )}
       <div className="mt-1 text-xs text-stone-400">

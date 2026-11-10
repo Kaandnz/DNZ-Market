@@ -16,6 +16,8 @@ export interface ReceiveResult {
 interface Props {
   product: Product | null;
   settings: StoreSettings;
+  /** Stok takibi açık mı? Kapalıysa "Adet" sorulmaz. */
+  withStock?: boolean;
   onClose: () => void;
   onSave: (r: ReceiveResult) => void;
 }
@@ -25,7 +27,7 @@ interface Props {
  * Alış değiştiyse, ürünün mevcut kâr oranını koruyan (yoksa marketin varsayılan kârı)
  * yuvarlanmış satış fiyatı önerilir. "Önerilen" ya da "Eskisi kalsın" seçilir.
  */
-export function ReceiveSheet({ product, settings, onClose, onSave }: Props) {
+export function ReceiveSheet({ product, settings, withStock = true, onClose, onSave }: Props) {
   const [qty, setQty] = useState("");
   const [cost, setCost] = useState("");
   /** Kullanıcının yazdığı kâr yüzdesi; boşsa ürünün bugünkü kârı (yoksa varsayılan) kullanılır. */
@@ -78,6 +80,9 @@ export function ReceiveSheet({ product, settings, onClose, onSave }: Props) {
         ? suggestion
         : oldSale;
 
+  // Satış elle yazıldıysa Kâr kutusu o fiyatın kârını anlık gösterir.
+  const liveMargin = saleChoice === "typed" && typedSale && baseCost ? marginPct(typedSale, baseCost) : null;
+
   const valid = (!cost || costK !== null) && (saleChoice !== "typed" || (typedSale !== null && typedSale > 0));
   const changed = qtyN > 0 || costChanged || finalSale !== oldSale;
   const canSave = valid && changed;
@@ -98,7 +103,7 @@ export function ReceiveSheet({ product, settings, onClose, onSave }: Props) {
           <div className="truncate">{product.name}</div>
           <div className="text-sm font-normal text-stone-500">
             {product.barcode}
-            {typeof product.stock === "number" && ` · stok ${product.stock}`}
+            {withStock && typeof product.stock === "number" && ` · stok ${product.stock}`}
           </div>
         </>
       }
@@ -106,7 +111,7 @@ export function ReceiveSheet({ product, settings, onClose, onSave }: Props) {
       <div className="flex flex-col gap-3">
         <FieldPad
           fields={[
-            { key: "qty", label: "Adet", value: qty, placeholder: "0", kind: "qty", note: "isteğe bağlı" },
+            ...(withStock ? [{ key: "qty", label: "Adet", value: qty, placeholder: "0", kind: "qty" as const, note: "isteğe bağlı" }] : []),
             {
               key: "cost",
               label: "Yeni alış",
@@ -118,9 +123,9 @@ export function ReceiveSheet({ product, settings, onClose, onSave }: Props) {
               key: "margin",
               label: "Kâr",
               value: margin,
-              placeholder: String(Math.round(defaultMargin)),
+              placeholder: String(Math.round(liveMargin ?? defaultMargin)),
               kind: "pct",
-              note: typedMargin !== null ? "senin" : hasCurrent ? "bugünkü" : "varsayılan",
+              note: typedMargin !== null ? "senin" : liveMargin !== null ? "anlık" : hasCurrent ? "bugünkü" : "varsayılan",
             },
             {
               key: "sale",
@@ -140,6 +145,8 @@ export function ReceiveSheet({ product, settings, onClose, onSave }: Props) {
             else {
               setSale(v);
               setSaleChoice(v ? "typed" : "suggest");
+              // Satış elle yazılınca kâr ondan hesaplanır; önceden yazılan kâr % temizlenir.
+              if (v) setMargin("");
             }
           }}
           onEnter={save}
@@ -200,7 +207,7 @@ export function ReceiveSheet({ product, settings, onClose, onSave }: Props) {
           className="h-16 rounded-2xl bg-sky-700 text-xl font-bold text-white active:bg-sky-800 disabled:bg-stone-300"
         >
           {!changed
-            ? "Adet ya da alış gir"
+            ? withStock ? "Adet ya da alış gir" : "Alış ya da fiyat gir"
             : `Kaydet${qtyN > 0 ? ` · +${qtyN} adet` : ""}${finalSale !== oldSale ? ` · ${formatTL(finalSale)}` : ""}`}
         </button>
       </div>

@@ -4,7 +4,7 @@ import { useUser } from "../auth/AuthProvider";
 import { useProductList } from "../products/useProductList";
 import { fold } from "../products/ProductsScreen";
 import { CountSheet } from "./CountSheet";
-import { DEFAULT_MIN_STOCK, isLowStock } from "../../data/products";
+import { isLowStock } from "../../data/products";
 import { formatTL } from "../../lib/money";
 import type { Product } from "../../data/types";
 import { useHideCost } from "../../lib/prefs";
@@ -23,11 +23,12 @@ export function StockScreen({ onStartCount }: { onStartCount: () => void }) {
   const [search, setSearch] = useState("");
   const [counting, setCounting] = useState<Product | null>(null);
   const hideCost = useHideCost();
+  const minDefault = store.settings.lowStockDefault;
 
   const tracked = useMemo(() => products.filter((p) => typeof p.stock === "number"), [products]);
   const low = useMemo(
-    () => tracked.filter(isLowStock).sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0) || a.name.localeCompare(b.name, "tr-TR")),
-    [tracked],
+    () => tracked.filter((p) => isLowStock(p, minDefault)).sort((a, b) => (a.stock ?? 0) - (b.stock ?? 0) || a.name.localeCompare(b.name, "tr-TR")),
+    [tracked, minDefault],
   );
   const untracked = useMemo(() => products.filter((p) => typeof p.stock !== "number"), [products]);
   const value = useMemo(
@@ -104,14 +105,14 @@ export function StockScreen({ onStartCount }: { onStartCount: () => void }) {
         <ul className="divide-y divide-stone-100 overflow-hidden rounded-3xl bg-white shadow-sm">
           {list.slice(0, 300).map((p) => {
             const s = p.stock;
-            const isLow = isLowStock(p);
+            const isLow = isLowStock(p, minDefault);
             return (
               <li key={p.barcode}>
                 <button onClick={() => setCounting(p)} className="flex w-full items-center gap-3 px-4 py-3 text-left active:bg-stone-50">
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium text-stone-800">{p.name}</div>
                     <div className="text-xs text-stone-400">
-                      {typeof s === "number" ? `uyarı ${p.minStock ?? DEFAULT_MIN_STOCK}` : "dokun, say"}
+                      {typeof s === "number" ? `uyarı ${p.minStock ?? minDefault}` : "dokun, say"}
                       {p.category && ` · ${p.category}`}
                     </div>
                   </div>

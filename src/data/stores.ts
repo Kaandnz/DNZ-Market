@@ -16,6 +16,8 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   defaultMarginPct: 20,
   rounding: "none",
   soundOn: true,
+  stockEnabled: true,
+  lowStockDefault: 2,
 };
 
 function displayNameOf(user: User): string {
