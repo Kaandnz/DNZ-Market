@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content="0; url=https://dnzbarcode.web.app/" />
+    <title>DNZ Bakkal taşındı</title>
+    <style>
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f5f5f4; color: #1c1917;
+             font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 24px; }
+      a { color: #047857; font-weight: 600; font-size: 20px; }
+    </style>
+  </head>
+  <body>
+    <div>
+      <p>DNZ Bakkal yeni adresine taşındı:</p>
+      <p><a href="https://dnzbarcode.web.app/">dnzbarcode.web.app</a></p>
+      <p style="color:#78716c;font-size:14px">Ana ekrana eklediysen, yeni adresi açıp tekrar "Ana Ekrana Ekle" yap.</p>
+    </div>
+    <script>
+      // Eski adreste kayıtlı uygulama (service worker) kalmasın, sonra yeni adrese git.
+      (async () => {
+        try {
+          const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
+          await Promise.all(regs.map((r) => r.unregister()));
+          if (window.caches) for (const k of await caches.keys()) await caches.delete(k);
+        } catch (e) {}
+        location.replace("https://dnzbarcode.web.app/" + location.search);
+      })();
+    </script>
+  </body>
+</html>

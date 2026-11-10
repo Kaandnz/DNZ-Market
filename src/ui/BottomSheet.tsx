@@ -8,6 +8,10 @@ interface Props {
   children: ReactNode;
 }
 
+/**
+ * Alttan açılan pencere. Boyu baştan en büyük halinde sabittir: içerik eklendikçe
+ * (ör. alış girince öneri kutusu çıkınca) pencere yukarı kaymaz, tuşlar yerinde kalır.
+ */
 export function BottomSheet({ open, onClose, title, children }: Props) {
   useBackClose(open, onClose);
   if (!open) return null;
@@ -18,7 +22,7 @@ export function BottomSheet({ open, onClose, title, children }: Props) {
         className="absolute inset-0 bg-black/40 animate-[fade_.15s_ease-out]"
         onClick={onClose}
       />
-      <div className="relative mx-auto w-full max-w-lg max-h-[94dvh] overflow-y-auto rounded-t-3xl bg-white pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl animate-[up_.2s_ease-out]">
+      <div className="relative mx-auto h-[94dvh] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-3xl bg-white pb-[max(1rem,env(safe-area-inset-bottom))] shadow-2xl animate-[up_.2s_ease-out]">
         <div className="sticky top-0 z-10 flex items-center gap-3 bg-white px-5 pt-3 pb-2">
           <div className="min-w-0 flex-1 text-lg font-semibold leading-tight">{title}</div>
           <button

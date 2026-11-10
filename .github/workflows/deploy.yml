@@ -1,0 +1,68 @@
+# main'e her push'ta: testler → derleme → Firebase'e yayın (site + güvenlik kuralları + indeksler).
+# Testlerden biri bile kırılırsa yayın yapılmaz, canlı site eski haliyle kalır.
+#
+# Gerekli GitHub secret'ı: FIREBASE_SERVICE_ACCOUNT  (Firebase servis hesabı JSON anahtarı)
+# Kurulumu README.md → "Otomatik yayın" bölümünde. Secret yoksa testler yine çalışır, yayın atlanır.
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # Actions sekmesinden elle de çalıştırılabilir
+
+# Aynı anda iki yayın çakışmasın; yeni push gelirse sıradaki beklesin.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tip kontrolü
+        run: npx tsc -b
+
+      - name: Birim testleri
+        run: npm test
+
+      # Güvenlik kuralı testleri Firestore Emulator içinde çalışır (Java 21 gerekir).
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Güvenlik kuralı testleri
+        run: npm run test:rules
+
+      - name: Derleme
+        run: npm run build
+
+      - name: Servis hesabı yok, yayın atlanıyor
+        if: env.FIREBASE_SA == ''
+        run: echo "::warning::FIREBASE_SERVICE_ACCOUNT secret'ı tanımlı değil; testler geçti ama yayın yapılmadı. README → Otomatik yayın."
+
+      - uses: google-github-actions/auth@v3
+        if: env.FIREBASE_SA != ''
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - name: Firebase'e yayınla
+        if: env.FIREBASE_SA != ''
+        run: npx firebase deploy --only hosting,firestore:rules,firestore:indexes --project dnz-bakkal --non-interactive --force
