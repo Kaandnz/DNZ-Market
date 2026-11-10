@@ -30,7 +30,7 @@ npm run test:rules  # Firestore güvenlik kuralları (emulator içinde)
 ## Yayın
 
 Canlı adres: **https://dnzbarcode.web.app** (Firebase projesi `dnz-bakkal`, hosting sitesi `dnzbarcode`).
-Eski adres `dnz-bakkal.web.app` yeni adrese yönlendirir (`hosting-redirect/`).
+Projenin varsayılan sitesi `dnz-bakkal.web.app` kapatıldı (`firebase hosting:disable --site dnz-bakkal`); kullanılmıyor.
 
 ### Otomatik yayın (GitHub Actions)
 

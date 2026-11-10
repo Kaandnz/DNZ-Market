@@ -38,30 +38,6 @@
           ]
         }
       ]
-    },
-    {
-      "site": "dnz-bakkal",
-      "public": "hosting-redirect",
-      "ignore": [
-        "**/.*"
-      ],
-      "rewrites": [
-        {
-          "source": "**",
-          "destination": "/index.html"
-        }
-      ],
-      "headers": [
-        {
-          "source": "**",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "no-cache"
-            }
-          ]
-        }
-      ]
     }
   ],
   "emulators": {
