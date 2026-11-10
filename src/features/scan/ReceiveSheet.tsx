@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { BottomSheet } from "../../ui/BottomSheet";
 import { FieldPad } from "../../ui/FieldPad";
-import { MarginLine, PriceChip } from "../../ui/PriceHints";
+import { MarginLine, PriceChangeSummary, PriceChip } from "../../ui/PriceHints";
 import { MarginChips } from "../../ui/MarginChips";
 import { formatPct, formatPlain, formatTL, marginPct, parseTL, suggestSale } from "../../lib/money";
 import type { Product, StoreSettings } from "../../data/types";
@@ -151,6 +151,9 @@ export function ReceiveSheet({ product, settings, withStock = true, onClose, onS
           }}
           onEnter={save}
         />
+
+        {/* Satış fiyatı nasıl değişirse değişsin eski → yeni özeti (Fiyat Değiştir'deki gibi) */}
+        <PriceChangeSummary oldSale={oldSale} newSale={finalSale} />
 
         <MarginChips value={typedMargin} onPick={(m) => pickMargin(String(m))} />
 

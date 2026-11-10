@@ -12,6 +12,25 @@ export function MarginLine({ sale, cost }: { sale: number | null; cost: number |
   );
 }
 
+/** "₺12,50 → ₺13,75 · +%10 · +₺1,25" özeti. Fiyat aynıysa hiçbir şey göstermez. */
+export function PriceChangeSummary({ oldSale, newSale }: { oldSale: number; newSale: number }) {
+  const diff = newSale - oldSale;
+  if (diff === 0) return null;
+  const pct = oldSale > 0 ? (diff / oldSale) * 100 : 0;
+  const sign = diff > 0 ? "+" : "−";
+  return (
+    <div
+      className={`rounded-2xl px-4 py-3 text-center text-base font-semibold tabular-nums ${
+        diff > 0 ? "bg-amber-50 text-amber-900" : "bg-emerald-50 text-emerald-900"
+      }`}
+    >
+      {formatTL(oldSale)} → {formatTL(newSale)} · {sign}
+      {formatPct(Math.abs(pct))} · {sign}
+      {formatTL(Math.abs(diff))}
+    </div>
+  );
+}
+
 interface ChipProps {
   label: string;
   price: number;

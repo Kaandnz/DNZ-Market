@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { BottomSheet } from "../../ui/BottomSheet";
 import { FieldPad } from "../../ui/FieldPad";
-import { MarginLine } from "../../ui/PriceHints";
+import { MarginLine, PriceChangeSummary } from "../../ui/PriceHints";
 import { MarginChips, RaiseChips } from "../../ui/MarginChips";
-import { formatPct, formatPlain, formatTL, kurusToInput, parseTL, roundPrice, suggestSale } from "../../lib/money";
+import { formatPlain, formatTL, kurusToInput, parseTL, roundPrice, suggestSale } from "../../lib/money";
 import type { Product, StoreSettings } from "../../data/types";
 
 interface Props {
@@ -56,9 +56,6 @@ export function EditPriceSheet({ product, settings, hideCost = false, onClose, o
     onSave({ salePrice: finalSale, ...(costK !== null ? { costPrice: costK } : {}) });
   }
 
-  const diff = finalSale - oldSale;
-  const diffPct = oldSale > 0 ? (diff / oldSale) * 100 : 0;
-
   return (
     <BottomSheet
       open
@@ -99,17 +96,7 @@ export function EditPriceSheet({ product, settings, hideCost = false, onClose, o
         />
 
         {/* Ne kadar arttı / azaldı */}
-        {diff !== 0 && (
-          <div
-            className={`rounded-2xl px-4 py-3 text-center text-base font-semibold tabular-nums ${
-              diff > 0 ? "bg-amber-50 text-amber-900" : "bg-emerald-50 text-emerald-900"
-            }`}
-          >
-            {formatTL(oldSale)} → {formatTL(finalSale)} · {diff > 0 ? "+" : "−"}
-            {formatPct(Math.abs(diffPct))} · {diff > 0 ? "+" : "−"}
-            {formatTL(Math.abs(diff))}
-          </div>
-        )}
+        <PriceChangeSummary oldSale={oldSale} newSale={finalSale} />
 
         <RaiseChips
           value={picked?.kind === "raise" ? picked.pct : null}
