@@ -1,0 +1,185 @@
+rules_version = '2';
+
+// Veri modeli:
+//   users/{uid}/memberships/{storeId}   kullanıcının üye olduğu marketler
+//   stores/{storeId}                    market
+//   stores/{storeId}/members/{uid}      üyeler (owner | staff)
+//   stores/{storeId}/products/{barkod}  ürünler (fiyatlar kuruş, tam sayı)
+//   stores/{storeId}/priceChanges/{id}  fiyat geçmişi (sadece eklenir)
+//   stores/{storeId}/stockMoves/{id}    stok hareketleri (sadece eklenir)
+//   invites/{kod}                       davet kodları
+//   catalog/{barkod}                    marketler arası ortak ürün adı havuzu (fiyat yok)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function memberPath(storeId, uid) {
+      return /databases/$(database)/documents/stores/$(storeId)/members/$(uid);
+    }
+
+    function isMember(storeId) {
+      return signedIn() && exists(memberPath(storeId, request.auth.uid));
+    }
+
+    function myMember(storeId) {
+      return get(memberPath(storeId, request.auth.uid)).data;
+    }
+
+    function isOwner(storeId) {
+      return isMember(storeId) && myMember(storeId).role == 'owner';
+    }
+
+    function canEdit(storeId) {
+      return isMember(storeId)
+        && (myMember(storeId).role == 'owner' || myMember(storeId).canEditPrice == true);
+    }
+
+    function optionalPrice(d, field) {
+      return !(field in d) || d[field] == null
+        || (d[field] is int && d[field] >= 0 && d[field] <= 100000000);
+    }
+
+    function optionalString(d, field, max) {
+      return !(field in d) || d[field] == null || (d[field] is string && d[field].size() <= max);
+    }
+
+    function validProduct(d) {
+      return d.keys().hasOnly(['name', 'nameLower', 'brand', 'category', 'salePrice', 'costPrice',
+                               'stock', 'minStock', 'labelPending', 'deleted', 'createdAt',
+                               'updatedAt', 'updatedBy'])
+        && d.name is string && d.name.size() > 0 && d.name.size() <= 200
+        && d.salePrice is int && d.salePrice >= 0 && d.salePrice <= 100000000
+        && optionalPrice(d, 'costPrice')
+        && optionalString(d, 'nameLower', 200)
+        && optionalString(d, 'brand', 100)
+        && optionalString(d, 'category', 100)
+        && (!('stock' in d) || d.stock is number)
+        && (!('minStock' in d) || d.minStock == null || d.minStock is number)
+        && d.updatedBy == request.auth.uid
+        && d.updatedAt == request.time;
+    }
+
+    // --- Kullanıcının market listesi ---
+    match /users/{uid}/memberships/{storeId} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      // Ancak gerçekten o marketin üyesiyse (aynı yazımda üye olsa bile) kendine ekleyebilir.
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && existsAfter(memberPath(storeId, uid));
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    // --- Market ---
+    match /stores/{storeId} {
+      allow read: if isMember(storeId);
+      allow create: if signedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 80
+        && getAfter(memberPath(storeId, request.auth.uid)).data.role == 'owner';
+      allow update: if isOwner(storeId)
+        && request.resource.data.ownerUid == resource.data.ownerUid;
+      allow delete: if false;
+
+      // --- Üyeler ---
+      match /members/{uid} {
+        allow read: if isMember(storeId);
+
+        // 1) Market kurulurken sahibi kendini ekler (market aynı yazımda oluşturuluyor).
+        // 2) Davet koduyla katılan kişi kendini "staff" olarak ekler.
+        allow create: if signedIn() && request.auth.uid == uid && (
+          (
+            request.resource.data.role == 'owner'
+            && !exists(/databases/$(database)/documents/stores/$(storeId))
+            && getAfter(/databases/$(database)/documents/stores/$(storeId)).data.ownerUid == uid
+          ) || (
+            request.resource.data.role == 'staff'
+            && request.resource.data.inviteCode is string
+            && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.storeId == storeId
+            && get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.expiresAt > request.time
+            && request.resource.data.canEditPrice == get(/databases/$(database)/documents/invites/$(request.resource.data.inviteCode)).data.canEditPrice
+          )
+        );
+
+        // Sahip yetkileri değiştirir; kimse kendi rolünü yükseltemez.
+        allow update: if isOwner(storeId) && uid != request.auth.uid;
+        // Sahip başkasını çıkarabilir; herkes kendisi ayrılabilir (sahip hariç).
+        allow delete: if (isOwner(storeId) && uid != request.auth.uid)
+          || (signedIn() && uid == request.auth.uid && resource.data.role != 'owner');
+      }
+
+      // --- Ürünler ---
+      match /products/{barcode} {
+        allow read: if isMember(storeId);
+        allow create, update: if canEdit(storeId) && validProduct(request.resource.data);
+        allow delete: if false; // yumuşak silme: deleted = true
+      }
+
+      // --- Fiyat geçmişi ---
+      match /priceChanges/{id} {
+        allow read: if isMember(storeId);
+        allow create: if canEdit(storeId)
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.at == request.time
+          && request.resource.data.barcode is string
+          && optionalPrice(request.resource.data, 'oldSale')
+          && optionalPrice(request.resource.data, 'newSale');
+        allow update, delete: if false;
+      }
+
+      // --- Toplu zam kayıtları (geri alma için) ---
+      match /bulkOps/{id} {
+        allow read: if isMember(storeId);
+        allow create: if canEdit(storeId)
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.at == request.time
+          && request.resource.data.items is list
+          && request.resource.data.count is int;
+        // Sadece "geri alındı" işareti konabilir; liste değiştirilemez.
+        allow update: if canEdit(storeId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['undone', 'undoneAt', 'undoneBy'])
+          && request.resource.data.undone == true
+          && request.resource.data.undoneBy == request.auth.uid;
+        allow delete: if false;
+      }
+
+      // --- Stok hareketleri ---
+      match /stockMoves/{id} {
+        allow read: if isMember(storeId);
+        allow create: if canEdit(storeId)
+          && request.resource.data.uid == request.auth.uid
+          && request.resource.data.at == request.time;
+        allow update, delete: if false;
+      }
+    }
+
+    // --- Davet kodları ---
+    match /invites/{code} {
+      // Kodu bilen okuyabilir (katılmak için gerekir), listelenemez.
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if isOwner(request.resource.data.storeId)
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.role == 'staff'
+        && request.resource.data.canEditPrice is bool
+        && request.resource.data.expiresAt is timestamp;
+      allow delete: if isOwner(resource.data.storeId);
+      allow update: if false;
+    }
+
+    // --- Ortak ürün adı havuzu (fiyat içermez) ---
+    match /catalog/{barcode} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if signedIn()
+        && request.resource.data.keys().hasOnly(['name', 'brand', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0 && request.resource.data.name.size() <= 200
+        && optionalString(request.resource.data, 'brand', 100);
+      allow delete: if false;
+    }
+  }
+}

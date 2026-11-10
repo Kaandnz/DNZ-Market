@@ -1,0 +1,232 @@
+@import "tailwindcss";
+
+@keyframes fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes up {
+  from { transform: translateY(24px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
+}
+@keyframes left {
+  from { transform: translateX(-24px); opacity: 0.6; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@keyframes scanline {
+  0%, 100% { transform: translateY(-28px); }
+  50% { transform: translateY(28px); }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #f5f5f4;
+  color: #1c1917;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  overscroll-behavior: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+button {
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+button:disabled {
+  cursor: default;
+}
+
+input {
+  font-size: 16px; /* iOS yakınlaştırmasın */
+}
+
+/* ---- Raf etiketleri (src/features/labels/LabelSheet.tsx) ---- */
+.label-sheet {
+  display: grid;
+  gap: 0;
+  color: #000;
+  background: #fff;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+.label {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 0.3mm dashed #bbb;
+  padding: 1.5mm 2mm;
+  break-inside: avoid;
+}
+.label-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 6pt;
+  color: #555;
+}
+.label-name {
+  font-weight: 600;
+  line-height: 1.15;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.label-price {
+  margin-top: auto;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.label-tl {
+  margin-left: 0.6mm;
+}
+.label-bottom {
+  display: flex;
+  justify-content: flex-start;
+}
+.label-barcode {
+  max-width: 100%;
+  height: auto;
+}
+.label-code-text {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 7pt;
+}
+
+/* Boyutlar: A4 (210×297) − 8 mm kenar = 194 × 281 mm */
+.label-small {
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 35mm;
+}
+.label-small .label-name { font-size: 8.5pt; }
+.label-small .label-lira { font-size: 24pt; }
+.label-small .label-kurus,
+.label-small .label-tl { font-size: 12pt; }
+
+.label-medium {
+  grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: 46.8mm;
+}
+.label-medium .label-name { font-size: 10pt; }
+.label-medium .label-lira { font-size: 32pt; }
+.label-medium .label-kurus,
+.label-medium .label-tl { font-size: 15pt; }
+
+.label-large {
+  grid-template-columns: repeat(2, 1fr);
+  grid-auto-rows: 70mm;
+}
+.label-large .label-top { font-size: 8pt; }
+.label-large .label-name { font-size: 14pt; }
+.label-large .label-lira { font-size: 52pt; }
+.label-large .label-kurus,
+.label-large .label-tl { font-size: 24pt; }
+
+/* Ekranda önizleme: A4 genişliğini telefona sığdır */
+.label-preview {
+  width: 194mm;
+  zoom: 0.45;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.15);
+}
+
+/* ---- Yazdırma: A4 fiyat listesi (src/features/products/PrintList.tsx) ---- */
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 8mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    height: auto;
+  }
+  #root {
+    display: none !important;
+  }
+  .print-only {
+    display: block;
+    color: #000;
+    font: 10pt/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .print-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 2px solid #000;
+    padding-bottom: 6pt;
+    margin-bottom: 8pt;
+  }
+  .print-store {
+    font-size: 16pt;
+    font-weight: 700;
+  }
+  .print-title {
+    font-size: 11pt;
+  }
+  .print-meta {
+    text-align: right;
+    font-size: 9pt;
+    color: #444;
+  }
+  .print-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .print-table thead {
+    display: table-header-group; /* her sayfada başlık tekrar etsin */
+  }
+  .print-table th {
+    text-align: left;
+    font-size: 9pt;
+    border-bottom: 1px solid #000;
+    padding: 3pt 4pt;
+  }
+  .print-table td {
+    padding: 3pt 4pt;
+    border-bottom: 0.5pt solid #ccc;
+    vertical-align: top;
+  }
+  .print-table tr {
+    break-inside: avoid;
+  }
+  .print-table tbody tr:nth-child(even) td {
+    background: #f3f3f3;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-table .num {
+    width: 1%;
+    color: #666;
+    text-align: right;
+  }
+  .print-table .code {
+    width: 1%;
+    white-space: nowrap;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 8.5pt;
+    color: #444;
+  }
+  .print-table .price {
+    width: 1%;
+    white-space: nowrap;
+    text-align: right;
+    font-weight: 700;
+    font-size: 11pt;
+  }
+}
