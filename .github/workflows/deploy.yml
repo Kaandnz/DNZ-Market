@@ -1,7 +1,7 @@
 # main'e her push'ta: testler → derleme → Firebase'e yayın (site + güvenlik kuralları + indeksler).
 # Testlerden biri bile kırılırsa yayın yapılmaz, canlı site eski haliyle kalır.
 #
-# Gerekli GitHub secret'ı: FIREBASE_SERVICE_ACCOUNT  (Firebase servis hesabı JSON anahtarı)
+# Gerekli GitHub secret'ı: FIREBASE_SERVICE_ACCOUNT_DNZ_BAKKAL (Firebase servis hesabı JSON anahtarı)
 # Kurulumu README.md → "Otomatik yayın" bölümünde. Secret yoksa testler yine çalışır, yayın atlanır.
 
 name: Deploy
@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
-      FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DNZ_BAKKAL }}
 
     steps:
       - uses: actions/checkout@v7
@@ -56,13 +56,18 @@ jobs:
 
       - name: Servis hesabı yok, yayın atlanıyor
         if: env.FIREBASE_SA == ''
-        run: echo "::warning::FIREBASE_SERVICE_ACCOUNT secret'ı tanımlı değil; testler geçti ama yayın yapılmadı. README → Otomatik yayın."
+        run: echo "::warning::FIREBASE_SERVICE_ACCOUNT_DNZ_BAKKAL secret'ı tanımlı değil; testler geçti ama yayın yapılmadı. README → Otomatik yayın."
 
       - uses: google-github-actions/auth@v3
         if: env.FIREBASE_SA != ''
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_DNZ_BAKKAL }}
 
-      - name: Firebase'e yayınla
+      # Önce kurallar: yeni kod yeni kurala ihtiyaç duyuyorsa, kod yayınlanmadan kural hazır olsun.
+      - name: Güvenlik kurallarını ve indeksleri yayınla
         if: env.FIREBASE_SA != ''
-        run: npx firebase deploy --only hosting,firestore:rules,firestore:indexes --project dnz-bakkal --non-interactive --force
+        run: npx firebase deploy --only firestore:rules,firestore:indexes --project dnz-bakkal --non-interactive --force
+
+      - name: Siteyi yayınla
+        if: env.FIREBASE_SA != ''
+        run: npx firebase deploy --only hosting --project dnz-bakkal --non-interactive --force

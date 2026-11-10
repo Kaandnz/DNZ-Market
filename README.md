@@ -37,13 +37,17 @@ Eski adres `dnz-bakkal.web.app` yeni adrese yönlendirir (`hosting-redirect/`).
 `main`'e her push'ta `.github/workflows/deploy.yml` çalışır: tip kontrolü → birim testleri → güvenlik kuralı
 testleri → derleme → Firebase'e yayın (site + Firestore kuralları + indeksler). Bir test bile kırılırsa yayın yapılmaz.
 
-Bir kerelik kurulum — GitHub'a servis hesabı anahtarı eklenir:
+Bir kerelik kurulum (yapıldı): `npx firebase init hosting:github` servis hesabını (`github-action-1452407939`) oluşturup
+GitHub'a `FIREBASE_SERVICE_ACCOUNT_DNZ_BAKKAL` secret'ı olarak ekledi. Kuralları da yayınlayabilmesi için bu hesaba
+Google Cloud IAM'den **Firebase Admin** ve **Service Usage Consumer** rolleri verildi.
+
+Elle kurmak gerekirse:
 
 1. https://console.cloud.google.com/iam-admin/serviceaccounts?project=dnz-bakkal → **Create service account**,
    ad: `github-deploy`. Roller: **Firebase Admin** ve **Service Usage Consumer**.
 2. Oluşan hesaba gir → **Keys** → **Add key** → **Create new key** → **JSON** (dosya iner).
 3. https://github.com/Kaandnz/DNZ-Market/settings/secrets/actions → **New repository secret**,
-   ad: `FIREBASE_SERVICE_ACCOUNT`, değer: indirilen JSON dosyasının tüm içeriği. Sonra JSON dosyasını sil.
+   ad: `FIREBASE_SERVICE_ACCOUNT_DNZ_BAKKAL`, değer: indirilen JSON dosyasının tüm içeriği. Sonra JSON dosyasını sil.
 
 Secret yoksa testler yine çalışır, yayın adımı uyarıyla atlanır. Actions sekmesinden **Run workflow** ile elle de çalıştırılabilir.
 
