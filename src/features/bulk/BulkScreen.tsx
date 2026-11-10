@@ -4,13 +4,14 @@ import { useUser } from "../auth/AuthProvider";
 import { useProductList } from "../products/useProductList";
 import { fold } from "../products/ProductsScreen";
 import { uniqueValues } from "../../ui/SuggestInput";
+import { ProductPicker } from "./ProductPicker";
 import { applyBulk, computeBulk, undoableItems, undoBulk, watchBulkOps, type BulkOp, type BulkRule } from "../../data/bulk";
 import { ROUNDING_OPTIONS, formatTL, parseTL, type Rounding } from "../../lib/money";
 import { timeAgo } from "../../lib/useOnline";
 import { toast } from "../../lib/events";
 import { beepSaved } from "../../lib/feedback";
 
-type Scope = "all" | "category" | "brand" | "search";
+type Scope = "all" | "category" | "brand" | "search" | "pick";
 const PREVIEW = 60;
 
 /**
@@ -26,6 +27,8 @@ export function BulkScreen() {
   const [category, setCategory] = useState("");
   const [brand, setBrand] = useState("");
   const [search, setSearch] = useState("");
+  /** "Tek tek seç": işaretlenen ürünlerin barkodları */
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   const [direction, setDirection] = useState<BulkRule["direction"]>("up");
   const [kind, setKind] = useState<BulkRule["kind"]>("pct");
   const [amountText, setAmountText] = useState("");
@@ -46,8 +49,9 @@ export function BulkScreen() {
       const t = fold(search.trim());
       return t ? products.filter((p) => fold(p.name).includes(t)) : [];
     }
+    if (scope === "pick") return products.filter((p) => picked.has(p.barcode));
     return products;
-  }, [products, scope, category, brand, search]);
+  }, [products, scope, category, brand, search, picked]);
 
   const amount = kind === "pct" ? Number(amountText.replace(",", ".")) : parseTL(amountText) ?? NaN;
   const rule: BulkRule = { direction, kind, amount: Number.isFinite(amount) ? amount : 0, rounding };
@@ -59,7 +63,7 @@ export function BulkScreen() {
   const tooBig = kind === "pct" && rule.amount > (direction === "up" ? 300 : 90);
 
   const scopeLabel =
-    scope === "category" ? category : scope === "brand" ? brand : scope === "search" ? `"${search.trim()}"` : "Tüm ürünler";
+    scope === "category" ? category : scope === "brand" ? brand : scope === "search" ? `"${search.trim()}"` : scope === "pick" ? `Seçilen ${selected.length} ürün` : "Tüm ürünler";
   const ruleLabel = `${direction === "up" ? "+" : "−"}${kind === "pct" ? `%${amountText}` : formatTL(rule.amount)}`;
   const current = useMemo(() => new Map(products.map((p) => [p.barcode, p])), [products]);
 
@@ -70,6 +74,7 @@ export function BulkScreen() {
     toast(`${items.length} ürünün fiyatı değişti.`);
     setConfirming(false);
     setAmountText("");
+    setPicked(new Set());
   }
 
   function undo(op: BulkOp) {
@@ -94,6 +99,7 @@ export function BulkScreen() {
               ["category", "Kategori"],
               ["brand", "Marka"],
               ["search", "İsimde geçen"],
+              ["pick", "Tek tek seç"],
             ] as const
           ).map(([s, label]) => (
             <button key={s} onClick={() => setScope(s)} className={chip(scope === s)}>
@@ -123,6 +129,7 @@ export function BulkScreen() {
           ) : (
             <p className="text-sm text-stone-500">Henüz markası olan ürün yok.</p>
           ))}
+        {scope === "pick" && <ProductPicker products={products} picked={picked} onChange={setPicked} />}
         {scope === "search" && (
           <input
             value={search}
