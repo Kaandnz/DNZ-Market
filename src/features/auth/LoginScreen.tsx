@@ -7,6 +7,7 @@ import {
 } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { errorText, toast } from "../../lib/events";
+import { MicButton } from "../../ui/MicButton";
 
 /** Giriş sadece e-posta / şifre ile. */
 export function LoginScreen() {
@@ -61,7 +62,10 @@ export function LoginScreen() {
 
       <form onSubmit={submit} className="flex flex-col gap-3">
         {mode === "register" && (
-          <input className={input} placeholder="Adın" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+          <div className="relative">
+            <input className={`${input} pr-12`} placeholder="Adın" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+            <MicButton onText={setName} className="absolute top-1/2 right-2 -translate-y-1/2" />
+          </div>
         )}
         <input
           className={input}

@@ -6,6 +6,7 @@ import { MarginChips } from "../../ui/MarginChips";
 import { formatPct, kurusToInput, parseTL, suggestSale } from "../../lib/money";
 import { lookupName, searchLinks, type NameHit } from "../../lib/lookup";
 import { toast } from "../../lib/events";
+import { MicButton } from "../../ui/MicButton";
 import type { StoreSettings } from "../../data/types";
 
 export interface NewProductResult {
@@ -144,13 +145,16 @@ export function NewProductSheet({ barcode, canEdit, settings, hideCost = false, 
 
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-600">Ürün adı</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={200}
-              placeholder={looking ? "İnternette aranıyor…" : "Ör. Ülker Çikolatalı Gofret 36 g"}
-              className="h-14 w-full rounded-2xl border border-stone-300 px-4 text-lg outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
-            />
+            <div className="relative">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={200}
+                placeholder={looking ? "İnternette aranıyor…" : "Ör. Ülker Çikolatalı Gofret 36 g"}
+                className="h-14 w-full rounded-2xl border border-stone-300 pr-12 pl-4 text-lg outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+              />
+              <MicButton onText={setName} className="absolute top-1/2 right-2 -translate-y-1/2" />
+            </div>
             {hit && name === hit.name && (
               <p className="mt-1 text-xs text-stone-400">
                 Ad otomatik bulundu ({hit.source === "catalog" ? "ortak liste" : "Open Food Facts"}). Gerekirse düzelt.

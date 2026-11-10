@@ -3,6 +3,7 @@ import { useUser } from "../auth/AuthProvider";
 import { useStore } from "./StoreProvider";
 import { createStore, joinWithInvite, normalizeInviteCode } from "../../data/stores";
 import { errorText, toast } from "../../lib/events";
+import { MicButton } from "../../ui/MicButton";
 
 const input =
   "h-14 w-full rounded-2xl border border-stone-300 bg-white px-4 text-lg outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20";
@@ -56,13 +57,16 @@ export function StoreForms({ onDone }: { onDone?: () => void }) {
     <div className="flex flex-col gap-6">
       <form onSubmit={create} className="flex flex-col gap-3 rounded-3xl bg-white p-5 shadow-sm">
         <h2 className="text-xl font-semibold">Yeni market aç</h2>
-        <input
-          className={input}
-          placeholder="Market adı (ör. Deniz Bakkal)"
-          value={storeName}
-          maxLength={80}
-          onChange={(e) => setStoreName(e.target.value)}
-        />
+        <div className="relative">
+          <input
+            className={`${input} pr-12`}
+            placeholder="Market adı (ör. Deniz Bakkal)"
+            value={storeName}
+            maxLength={80}
+            onChange={(e) => setStoreName(e.target.value)}
+          />
+          <MicButton onText={setStoreName} className="absolute top-1/2 right-2 -translate-y-1/2" />
+        </div>
         <button className={primary} disabled={busy || !storeName.trim()}>
           Marketi aç
         </button>

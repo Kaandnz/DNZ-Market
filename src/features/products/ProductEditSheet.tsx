@@ -8,6 +8,7 @@ import { beepSaved } from "../../lib/feedback";
 import { toast } from "../../lib/events";
 import { ChangeRow } from "../history/ChangeRow";
 import { SuggestInput } from "../../ui/SuggestInput";
+import { MicButton } from "../../ui/MicButton";
 import { useHideCost } from "../../lib/prefs";
 import { useStore } from "../store/StoreProvider";
 import type { PriceChange, Product } from "../../data/types";
@@ -108,12 +109,15 @@ export function ProductEditSheet({ product, storeId, uid, canEdit, categories = 
         <div className="flex flex-col gap-3">
           <div>
             <label className="mb-1 block text-sm font-medium text-stone-600">Ürün adı</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={200}
-              className="h-14 w-full rounded-2xl border border-stone-300 px-4 text-lg outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
-            />
+            <div className="relative">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                maxLength={200}
+                className="h-14 w-full rounded-2xl border border-stone-300 pr-12 pl-4 text-lg outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+              />
+              <MicButton onText={setName} className="absolute top-1/2 right-2 -translate-y-1/2" />
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <SuggestInput label="Kategori" value={category} onChange={setCategory} suggestions={categories} placeholder="ör. İçecek" />

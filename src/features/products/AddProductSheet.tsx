@@ -3,6 +3,7 @@ import { BottomSheet } from "../../ui/BottomSheet";
 import { FieldPad } from "../../ui/FieldPad";
 import { MarginLine, PriceChip } from "../../ui/PriceHints";
 import { SuggestInput } from "../../ui/SuggestInput";
+import { MicButton } from "../../ui/MicButton";
 import { formatPct, kurusToInput, parseTL, suggestSale } from "../../lib/money";
 import { normalizeBarcode } from "../../lib/barcode";
 import { internalCode, savePrice } from "../../data/products";
@@ -77,13 +78,16 @@ export function AddProductSheet({ open, storeId, uid, settings, products, catego
       <div className="flex flex-col gap-3">
         <div>
           <label className="mb-1 block text-sm font-medium text-stone-600">Ürün adı</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={200}
-            placeholder="ör. Toz şeker (kg)"
-            className="h-14 w-full rounded-2xl border border-stone-300 px-4 text-lg outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
-          />
+          <div className="relative">
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              maxLength={200}
+              placeholder="ör. Toz şeker (kg)"
+              className="h-14 w-full rounded-2xl border border-stone-300 pr-12 pl-4 text-lg outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+            />
+            <MicButton onText={setName} className="absolute top-1/2 right-2 -translate-y-1/2" />
+          </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div>

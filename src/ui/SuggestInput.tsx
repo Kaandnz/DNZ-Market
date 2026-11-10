@@ -1,4 +1,5 @@
 import { useId } from "react";
+import { MicButton } from "./MicButton";
 
 interface Props {
   label: string;
@@ -15,14 +16,17 @@ export function SuggestInput({ label, value, onChange, suggestions, placeholder 
   return (
     <div>
       <label className="mb-1 block text-sm font-medium text-stone-600">{label}</label>
-      <input
-        list={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        maxLength={100}
-        placeholder={placeholder}
-        className="h-12 w-full rounded-2xl border border-stone-300 px-4 text-base outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
-      />
+      <div className="relative">
+        <input
+          list={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          maxLength={100}
+          placeholder={placeholder}
+          className="h-12 w-full rounded-2xl border border-stone-300 pr-11 pl-4 text-base outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-600/20"
+        />
+        <MicButton onText={onChange} className="absolute top-1/2 right-1 -translate-y-1/2" />
+      </div>
       <datalist id={id}>
         {suggestions.map((s) => (
           <option key={s} value={s} />
