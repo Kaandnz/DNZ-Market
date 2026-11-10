@@ -8,6 +8,7 @@ import { isLowStock } from "../../data/products";
 import { formatTL } from "../../lib/money";
 import type { Product } from "../../data/types";
 import { useHideCost } from "../../lib/prefs";
+import { MicButton } from "../../ui/MicButton";
 
 type Tab = "low" | "all" | "none";
 
@@ -83,12 +84,15 @@ export function StockScreen({ onStartCount }: { onStartCount: () => void }) {
         ))}
       </div>
 
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Ürün ara"
-        className="h-11 w-full rounded-2xl border border-stone-300 bg-white px-4 text-base outline-none focus:border-emerald-600"
-      />
+      <div className="relative">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Ürün ara"
+          className="h-11 w-full rounded-2xl border border-stone-300 bg-white pr-12 pl-4 text-base outline-none focus:border-emerald-600"
+        />
+        <MicButton onText={setSearch} className="absolute top-1/2 right-1 -translate-y-1/2" />
+      </div>
 
       {loading && products.length === 0 && <div className="py-6 text-center text-stone-400">Yükleniyor…</div>}
       {!loading && list.length === 0 && (

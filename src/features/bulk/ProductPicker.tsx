@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { fold } from "../products/ProductsScreen";
 import { formatTL } from "../../lib/money";
+import { MicButton } from "../../ui/MicButton";
 import type { Product } from "../../data/types";
 
 const SHOW = 200;
@@ -45,12 +46,15 @@ export function ProductPicker({ products, picked, onChange }: Props) {
 
   return (
     <div className="flex flex-col gap-2">
-      <input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Ürün ara (ad ya da barkod)"
-        className="h-12 w-full rounded-2xl border border-stone-300 px-4 text-base outline-none focus:border-emerald-600"
-      />
+      <div className="relative">
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Ürün ara (ad ya da barkod)"
+          className="h-12 w-full rounded-2xl border border-stone-300 pr-12 pl-4 text-base outline-none focus:border-emerald-600"
+        />
+        <MicButton onText={setSearch} className="absolute top-1/2 right-1.5 -translate-y-1/2" />
+      </div>
       <div className="flex items-center justify-between gap-2 text-sm">
         <button
           onClick={() => setOnlyPicked(!showPicked)}

@@ -4,6 +4,7 @@ import { useUser } from "../auth/AuthProvider";
 import { useProductList } from "../products/useProductList";
 import { fold } from "../products/ProductsScreen";
 import { uniqueValues } from "../../ui/SuggestInput";
+import { MicButton } from "../../ui/MicButton";
 import { ProductPicker } from "./ProductPicker";
 import { applyBulk, computeBulk, undoableItems, undoBulk, watchBulkOps, type BulkOp, type BulkRule } from "../../data/bulk";
 import { ROUNDING_OPTIONS, formatTL, parseTL, type Rounding } from "../../lib/money";
@@ -131,12 +132,15 @@ export function BulkScreen() {
           ))}
         {scope === "pick" && <ProductPicker products={products} picked={picked} onChange={setPicked} />}
         {scope === "search" && (
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="ör. sigara, ekmek, cola"
-            className="h-12 w-full rounded-2xl border border-stone-300 px-4 text-base outline-none focus:border-emerald-600"
-          />
+          <div className="relative">
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ör. sigara, ekmek, cola"
+              className="h-12 w-full rounded-2xl border border-stone-300 pr-12 pl-4 text-base outline-none focus:border-emerald-600"
+            />
+            <MicButton onText={setSearch} className="absolute top-1/2 right-1.5 -translate-y-1/2" />
+          </div>
         )}
         <p className="text-sm text-stone-500">{loading && products.length === 0 ? "Ürünler yükleniyor…" : `${selected.length} ürün seçili`}</p>
       </section>

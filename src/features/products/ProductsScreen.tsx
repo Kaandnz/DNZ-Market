@@ -6,6 +6,7 @@ import { ProductEditSheet } from "./ProductEditSheet";
 import { PrintList } from "./PrintList";
 import { AddProductSheet } from "./AddProductSheet";
 import { uniqueValues } from "../../ui/SuggestInput";
+import { MicButton } from "../../ui/MicButton";
 import { formatTL } from "../../lib/money";
 import { timeAgo } from "../../lib/useOnline";
 import { storage } from "../../lib/feedback";
@@ -82,17 +83,25 @@ export function ProductsScreen({ initialSearch = "" }: { initialSearch?: string 
             }}
             placeholder="Ürün adı veya barkod ara"
             enterKeyHint="search"
-            className="h-12 w-full rounded-2xl border border-stone-300 bg-white pr-10 pl-4 text-base outline-none focus:border-emerald-600"
+            className="h-12 w-full rounded-2xl border border-stone-300 bg-white pr-20 pl-4 text-base outline-none focus:border-emerald-600"
           />
-          {search && (
-            <button
-              onClick={() => setSearch("")}
-              className="absolute top-1/2 right-2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-xl text-stone-400"
-              aria-label="Aramayı temizle"
-            >
-              ×
-            </button>
-          )}
+          <div className="absolute top-1/2 right-1.5 flex -translate-y-1/2 items-center">
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="grid size-8 place-items-center rounded-full text-xl text-stone-400"
+                aria-label="Aramayı temizle"
+              >
+                ×
+              </button>
+            )}
+            <MicButton
+              onText={(t) => {
+                setSearch(t);
+                setLimit(PAGE);
+              }}
+            />
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex flex-1 gap-1 rounded-xl bg-stone-200 p-1">

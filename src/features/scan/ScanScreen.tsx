@@ -20,6 +20,7 @@ import { useHideCost } from "../../lib/prefs";
 import { EMPTY_CART, addToCart, setQty, type Cart } from "../../lib/cart";
 import { SalePanel } from "./SalePanel";
 import { SaleSearch } from "./SaleSearch";
+import { MicButton } from "../../ui/MicButton";
 
 /** Barkodlar rakam / büyük harf; boşluk, küçük harf ya da Türkçe harf varsa ürün adıdır. */
 const isNameQuery = (t: string) => /[\sa-zçğıöşüÇĞİÖŞÜ]/.test(t);
@@ -316,13 +317,16 @@ export function ScanScreen({ blocked, countMode = false, onExitCount, onSearchNa
       )}
 
       <form onSubmit={submitManual} className="flex gap-2">
-        <input
-          value={manual}
-          onChange={(e) => setManual(e.target.value)}
-          enterKeyHint="search"
-          placeholder={onSearchName ? "Barkod yaz ya da ürün ara" : "Barkodu elle yaz"}
-          className="h-14 min-w-0 flex-1 rounded-2xl border border-stone-300 bg-white px-4 text-lg outline-none focus:border-emerald-600"
-        />
+        <div className="relative min-w-0 flex-1">
+          <input
+            value={manual}
+            onChange={(e) => setManual(e.target.value)}
+            enterKeyHint="search"
+            placeholder={onSearchName ? "Barkod yaz ya da ürün ara" : "Barkodu elle yaz"}
+            className="h-14 w-full rounded-2xl border border-stone-300 bg-white pr-12 pl-4 text-lg outline-none focus:border-emerald-600"
+          />
+          <MicButton onText={setManual} className="absolute top-1/2 right-2 -translate-y-1/2" />
+        </div>
         <button className="h-14 rounded-2xl bg-stone-800 px-5 font-semibold text-white active:bg-stone-900 disabled:opacity-40" disabled={!manual.trim()}>
           Bul
         </button>
